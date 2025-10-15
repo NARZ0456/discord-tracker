@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Activity Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --discord-blurple: #5865F2;
+            --discord-green: #57F287;
+            --discord-yellow: #FEE75C;
+            --discord-red: #ED4245;
+            --discord-dark: #2C2F33;
+            --discord-darker: #23272A;
+            --discord-light: #99AAB5;
+            --discord-white: #FFFFFF;
+            --discord-not-quite-black: #313338;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--discord-darker);
+            color: var(--discord-white);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--discord-dark) 0%, var(--discord-darker) 100%);
+            padding: 20px 0;
+            border-bottom: 2px solid var(--discord-blurple);
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--discord-blurple);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .logo h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(90deg, var(--discord-blurple), var(--discord-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+        
+        .server-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: var(--discord-not-quite-black);
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .server-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--discord-blurple), var(--discord-green));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .server-details h2 {
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+        
+        .server-details p {
+            color: var(--discord-light);
+            font-size: 0.9rem;
+        }
+        
+        .server-stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, var(--discord-dark) 0%, var(--discord-not-quite-black) 100%);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 140px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            border-left: 4px solid var(--discord-blurple);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .members .stat-value {
+            color: var(--discord-green);
+        }
+        
+        .online .stat-value {
+            color: var(--discord-blurple);
+        }
+        
+        .voice .stat-value {
+            color: var(--discord-yellow);
+        }
+        
+        .messages .stat-value {
+            color: var(--discord-red);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--discord-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: linear-gradient(135deg, var(--discord-dark) 0%, var(--discord-not-quite-black) 100%);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-title i {
+            color: var(--discord-blurple);
+        }
+        
+        .online-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            color: var(--discord-green);
+            background: rgba(87, 242, 135, 0.1);
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+        
+        .online-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--discord-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .user-list {
+            max-height: 350px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .user-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .user-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        .user-list::-webkit-scrollbar-thumb {
+            background: var(--discord-blurple);
+            border-radius: 10px;
+        }
+        
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.2s ease;
+        }
+        
+        .user-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        
+        .user-item:last-child {
+            border-bottom: none;
+        }
+        
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--discord-blurple), var(--discord-green));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            position: relative;
+        }
+        
+        .status-indicator {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid var(--discord-dark);
+        }
+        
+        .status-online {
+            background-color: var(--discord-green);
+        }
+        
+        .status-idle {
+            background-color: var(--discord-yellow);
+        }
+        
+        .status-dnd {
+            background-color: var(--discord-red);
+        }
+        
+        .user-info {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .user-status {
+            font-size: 0.85rem;
+            color: var(--discord-light);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .activity-chart-container {
+            height: 250px;
+            margin-top: 15px;
+            position: relative;
+        }
+        
+        .recent-activity {
+            max-height: 350px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .activity-item {
+            display: flex;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.2s ease;
+        }
+        
+        .activity-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--discord-blurple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        
+        .activity-content {
+            flex: 1;
+        }
+        
+        .activity-text {
+            margin-bottom: 5px;
+        }
+        
+        .activity-user {
+            font-weight: 600;
+            color: var(--discord-green);
+        }
+        
+        .activity-time {
+            font-size: 0.8rem;
+            color: var(--discord-light);
+        }
+        
+        .channels-activity {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .channel-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s ease;
+        }
+        
+        .channel-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .channel-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .channel-count {
+            font-weight: bold;
+            color: var(--discord-blurple);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 25px 0;
+            color: var(--discord-light);
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        .last-updated {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--discord-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        
+        @media (max-width: 1100px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .server-stats {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .server-stats {
+                justify-content: space-around;
+            }
+            
+            .stat-box {
+                min-width: calc(50% - 20px);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stat-box {
+                min-width: 100%;
+            }
+            
+            .server-info {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fab fa-discord"></i>
+                    </div>
+                    <h1>Discord Activity Tracker</h1>
+                </div>
+                
+                <div class="server-info">
+                    <div class="server-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="server-details">
+                        <h2>Developers Hub</h2>
+                        <p>Мониторинг активности в реальном времени</p>
+                    </div>
+                </div>
+                
+                <div class="server-stats">
+                    <div class="stat-box members">
+                        <div class="stat-value">342</div>
+                        <div class="stat-label">
+                            <i class="fas fa-users"></i>
+                            Участники
+                        </div>
+                    </div>
+                    <div class="stat-box online">
+                        <div class="stat-value">127</div>
+                        <div class="stat-label">
+                            <i class="fas fa-circle"></i>
+                            Онлайн
+                        </div>
+                    </div>
+                    <div class="stat-box voice">
+                        <div class="stat-value">24</div>
+                        <div class="stat-label">
+                            <i class="fas fa-microphone"></i>
+                            Голосовые
+                        </div>
+                    </div>
+                    <div class="stat-box messages">
+                        <div class="stat-value">1,284</div>
+                        <div class="stat-label">
+                            <i class="fas fa-comment"></i>
+                            Сообщения (24ч)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="dashboard">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-user-friends"></i>
+                        Активные участники
+                    </div>
+                    <div class="online-indicator">
+                        <div class="online-dot"></div>
+                        <span>127 онлайн</span>
+                    </div>
+                </div>
+                <div class="user-list" id="activeUsers">
+                    <!-- Active users will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-chart-line"></i>
+                        Активность за неделю
+                    </div>
+                </div>
+                <div class="activity-chart-container">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-list-alt"></i>
+                        Недавняя активность
+                    </div>
+                </div>
+                <div class="recent-activity" id="recentActivity">
+                    <!-- Recent activity will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-hashtag"></i>
+                        Активность по каналам
+                    </div>
+                </div>
+                <div class="channels-activity" id="channelsActivity">
+                    <!-- Channels activity will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="last-updated">
+            <i class="fas fa-sync-alt"></i>
+            Последнее обновление: <span id="lastUpdated">только что</span>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="container">
+            <p>Discord Activity Tracker &copy; 2023 | Мониторинг активности сервера в реальном времени</p>
+        </div>
+    </footer>
+
+    <script>
+        // Mock data for demonstration
+        const activeUsers = [
+            { name: "AlexDeveloper", status: "Разработка бота", avatar: "AD", statusType: "online" },
+            { name: "GamerPro", status: "Играет в Valorant", avatar: "GP", statusType: "dnd" },
+            { name: "MusicLover", status: "Слушает музыку", avatar: "ML", statusType: "online" },
+            { name: "ArtDesigner", status: "Рисует арты", avatar: "AD", statusType: "idle" },
+            { name: "ChatModerator", status: "Модерирует чат", avatar: "CM", statusType: "online" },
+            { name: "StreamHelper", status: "Помогает со стримом", avatar: "SH", statusType: "online" },
+            { name: "CodeMaster", status: "Пишет код", avatar: "CM", statusType: "online" },
+            { name: "BotCreator", status: "Настраивает бота", avatar: "BC", statusType: "idle" }
+        ];
+        
+        const activityData = {
+            labels: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
+            datasets: [{
+                label: 'Сообщения',
+                data: [245, 312, 278, 389, 421, 512, 387],
+                backgroundColor: 'rgba(88, 101, 242, 0.5)',
+                borderColor: 'rgba(88, 101, 242, 1)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true
+            }]
+        };
+        
+        const recentActivities = [
+            { user: "AlexDeveloper", action: "отправил сообщение в #general", time: "2 минуты назад" },
+            { user: "GamerPro", action: "присоединился к голосовому каналу 'Gaming'", time: "5 минут назад" },
+            { user: "MusicLover", action: "запустил музыку в #music", time: "10 минут назад" },
+            { user: "ArtDesigner", action: "поделился работой в #art", time: "15 минут назад" },
+            { user: "ChatModerator", action: "выдал предупреждение пользователю", time: "20 минут назад" },
+            { user: "StreamHelper", action: "начал стрим в #streaming", time: "25 минут назад" },
+            { user: "CodeMaster", action: "задал вопрос в #help", time: "30 минут назад" }
+        ];
+        
+        const channelsActivity = [
+            { name: "general", count: 342 },
+            { name: "gaming", count: 287 },
+            { name: "music", count: 156 },
+            { name: "art", count: 98 },
+            { name: "help", count: 203 },
+            { name: "off-topic", count: 178 }
+        ];
+        
+        // Populate active users
+        const activeUsersContainer = document.getElementById('activeUsers');
+        activeUsers.forEach(user => {
+            const userElement = document.createElement('div');
+            userElement.className = 'user-item';
+            userElement.innerHTML = `
+                <div class="user-avatar">
+                    ${user.avatar}
+                    <div class="status-indicator status-${user.statusType}"></div>
+                </div>
+                <div class="user-info">
+                    <div class="user-name">${user.name}</div>
+                    <div class="user-status">
+                        <i class="fas fa-${user.statusType === 'online' ? 'circle' : user.statusType === 'idle' ? 'moon' : 'minus-circle'}"></i>
+                        ${user.status}
+                    </div>
+                </div>
+            `;
+            activeUsersContainer.appendChild(userElement);
+        });
+        
+        // Create activity chart
+        const ctx = document.getElementById('activityChart').getContext('2d');
+        const activityChart = new Chart(ctx, {
+            type: 'line',
+            data: activityData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.7)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.7)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Populate recent activity
+        const recentActivityContainer = document.getElementById('recentActivity');
+        recentActivities.forEach(activity => {
+            const activityElement = document.createElement('div');
+            activityElement.className = 'activity-item';
+            activityElement.innerHTML = `
+                <div class="activity-icon">${activity.user.charAt(0)}</div>
+                <div class="activity-content">
+                    <div class="activity-text">
+                        <span class="activity-user">${activity.user}</span> ${activity.action}
+                    </div>
+                    <div class="activity-time">${activity.time}</div>
+                </div>
+            `;
+            recentActivityContainer.appendChild(activityElement);
+        });
+        
+        // Populate channels activity
+        const channelsActivityContainer = document.getElementById('channelsActivity');
+        channelsActivity.forEach(channel => {
+            const channelElement = document.createElement('div');
+            channelElement.className = 'channel-item';
+            channelElement.innerHTML = `
+                <div class="channel-name">
+                    <i class="fas fa-hashtag"></i>
+                    ${channel.name}
+                </div>
+                <div class="channel-count">${channel.count}</div>
+            `;
+            channelsActivityContainer.appendChild(channelElement);
+        });
+        
+        // Update online users count every 30 seconds (simulated)
+        setInterval(() => {
+            const onlineCount = document.querySelector('.online .stat-value');
+            const currentCount = parseInt(onlineCount.textContent);
+            const change = Math.floor(Math.random() * 5) - 2; // -2 to 2
+            const newCount = Math.max(120, Math.min(135, currentCount + change));
+            onlineCount.textContent = newCount;
+            
+            // Update online indicator
+            const onlineIndicator = document.querySelector('.online-indicator span');
+            onlineIndicator.textContent = `${newCount} онлайн`;
+            
+            // Update last updated time
+            const lastUpdated = document.getElementById('lastUpdated');
+            lastUpdated.textContent = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        }, 30000);
+        
+        // Simulate message count update
+        setInterval(() => {
+            const messageCount = document.querySelector('.messages .stat-value');
+            const currentCount = parseInt(messageCount.textContent.replace(',', ''));
+            const newCount = currentCount + Math.floor(Math.random() * 10) + 5;
+            messageCount.textContent = newCount.toLocaleString();
+        }, 15000);
+    </script>
+</body>
+</html>
